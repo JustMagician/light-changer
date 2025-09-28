@@ -2,6 +2,7 @@
 
 from "parts/ST_MMBT3904/ST_MMBT3904.ato" import ST_MMBT3904_package
 
+from "atopile/indicator-leds/indicator-leds.ato" import LEDIndicatorRed
 
 
 """
@@ -9,72 +10,81 @@ Dual LED flasher (astable multivibrator) using two NPN BJTs.
 Supply: 5V via a 2-pin header.
 """
 
-import ElectricPower, Electrical, Resistor, Capacitor, Diode  # Diode for LED symbol
+import ElectricPower, Electrical, Resistor, Capacitor
 
 module App:
     # --- Power rail ---
     v5 = new ElectricPower
+    # v5.voltage = 5V
     assert v5.voltage is 5V +/- 10%
 
     # --- I/O pads for power (use `pin` if you just want pads / bring-in) ---
     # If you prefer a real header footprint, run `ato create part` for a 1x02 header and import it.
     power_in = new Electrical
+    power_in ~ pin 1
     power_in.override_net_name = "VIN_PAD"
     # Map pads to rails:
     power_in ~> v5.hv
     # Add a second pad to GND:
     gnd_in = new Electrical
+    gnd_in ~ pin 0
     gnd_in ~> v5.lv
 
     # --- Active devices ---
     q1 = new ST_MMBT3904_package
+    q1.override_net_name = "Q1"
     q2 = new ST_MMBT3904_package
+    q2.override_net_name = "Q2"
 
-    # --- LEDs (use Diode for symbol; current limited by RC collector resistors) ---
-    led1 = new Diode
-    led2 = new Diode
+    # --- LEDs ---
+    led1 = new LEDIndicatorRed
+    led1.override_net_name = "LED1"
+    led2 = new LEDIndicatorRed
+    led2.override_net_name = "LED2"
 
     # --- Collector resistors (also act as LED series resistors) ---
-    rc1 = new Resistor
-    rc1.resistance = 330ohm +/- 5%
-    rc1.package = "0603"
+    # rc1 = new Resistor
+    # rc1.resistance = 330ohm +/- 5%
+    # rc1.package = "0603"
 
-    rc2 = new Resistor
-    rc2.resistance = 330ohm +/- 5%
-    rc2.package = "0603"
+    # rc2 = new Resistor
+    # rc2.resistance = 330ohm +/- 5%
+    # rc2.package = "0603"
 
     # --- Base resistors ---
     rb1 = new Resistor
-    rb1.resistance = 47kohm +/- 5%
+    rb1.resistance = 100kohm +/- 5%
     rb1.package = "0603"
+    rb1.override_net_name = "R1"
 
     rb2 = new Resistor
-    rb2.resistance = 47kohm +/- 5%
+    rb2.resistance = 100kohm +/- 5%
     rb2.package = "0603"
 
     # --- Timing capacitors ---
     c1 = new Capacitor
-    c1.capacitance = 10uF +/- 20%
+    c1.capacitance = 10uF +/- 10%
     c1.package = "0603"   # you can choose 0805 if 10uF 0603 is hard to source
 
     c2 = new Capacitor
-    c2.capacitance = 10uF +/- 20%
+    c2.capacitance = 10uF +/- 10%
     c2.package = "0603"
 
+    # --- Assert timing math for the period ---
+    # freq = 1 / R * C
+    assert rb1.resistance * c1.capacitance within 0.8sec to 1.2sec
+    assert rb2.resistance * c2.capacitance within 0.8sec to 1.2sec
+
+
     # --- Wiring (classic astable topology) ---
-    # Transistor pin names may be "collector/base/emitter" depending on the auto-generated part.
-    # If your generated part exposes pins numerically, connect those pads accordingly.
 
     # Collectors go to VCC through RC; LEDs placed at collectors to VCC for visual clarity
-    v5.hv ~> rc1 ~> q1.C
-    v5.hv ~> rc2 ~> q2.C
+    # v5.hv ~> rc1 ~> q1.C
+    # v5.hv ~> rc2 ~> q2.C
 
     # LED anodes to VCC, cathodes to collectors (LED on when collector is low)
-    v5.hv ~> led1.anode
-    led1.cathode ~ q1.C
-
-    v5.hv ~> led2.anode
-    led2.cathode ~ q2.C
+    v5 ~> led1.power
+    v5 ~> led2.power
 
     # Emitters to ground
     q1.E ~ v5.lv
