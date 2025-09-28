@@ -1,4 +1,88 @@
-"""Brand new atopile project!"""
+#pragma experiment("BRIDGE_CONNECT")
+
+from "parts/ST_MMBT3904/ST_MMBT3904.ato" import ST_MMBT3904_package
+
+
+
+"""
+Dual LED flasher (astable multivibrator) using two NPN BJTs.
+Supply: 5V via a 2-pin header.
+"""
+
+import ElectricPower, Electrical, Resistor, Capacitor, Diode  # Diode for LED symbol
 
 module App:
-    pass
+    # --- Power rail ---
+    v5 = new ElectricPower
+    assert v5.voltage is 5V +/- 10%
+
+    # --- I/O pads for power (use `pin` if you just want pads / bring-in) ---
+    # If you prefer a real header footprint, run `ato create part` for a 1x02 header and import it.
+    power_in = new Electrical
+    power_in.override_net_name = "VIN_PAD"
+    # Map pads to rails:
+    power_in ~> v5.hv
+    # Add a second pad to GND:
+    gnd_in = new Electrical
+    gnd_in ~> v5.lv
+
+    # --- Active devices ---
+    q1 = new ST_MMBT3904_package
+    q2 = new ST_MMBT3904_package
+
+    # --- LEDs (use Diode for symbol; current limited by RC collector resistors) ---
+    led1 = new Diode
+    led2 = new Diode
+
+    # --- Collector resistors (also act as LED series resistors) ---
+    rc1 = new Resistor
+    rc1.resistance = 330ohm +/- 5%
+    rc1.package = "0603"
+
+    rc2 = new Resistor
+    rc2.resistance = 330ohm +/- 5%
+    rc2.package = "0603"
+
+    # --- Base resistors ---
+    rb1 = new Resistor
+    rb1.resistance = 47kohm +/- 5%
+    rb1.package = "0603"
+
+    rb2 = new Resistor
+    rb2.resistance = 47kohm +/- 5%
+    rb2.package = "0603"
+
+    # --- Timing capacitors ---
+    c1 = new Capacitor
+    c1.capacitance = 10uF +/- 20%
+    c1.package = "0603"   # you can choose 0805 if 10uF 0603 is hard to source
+
+    c2 = new Capacitor
+    c2.capacitance = 10uF +/- 20%
+    c2.package = "0603"
+
+    # --- Wiring (classic astable topology) ---
+    # Transistor pin names may be "collector/base/emitter" depending on the auto-generated part.
+    # If your generated part exposes pins numerically, connect those pads accordingly.
+
+    # Collectors go to VCC through RC; LEDs placed at collectors to VCC for visual clarity
+    v5.hv ~> rc1 ~> q1.C
+    v5.hv ~> rc2 ~> q2.C
+
+    # LED anodes to VCC, cathodes to collectors (LED on when collector is low)
+    v5.hv ~> led1.anode
+    led1.cathode ~ q1.C
+
+    v5.hv ~> led2.anode
+    led2.cathode ~ q2.C
+
+    # Emitters to ground
+    q1.E ~ v5.lv
+    q2.E ~ v5.lv
+
+    # Cross-coupled RC: each collector drives the other's base through a capacitor; base to VCC via resistor
+    v5.hv ~> rb1 ~> q1.B
+    v5.hv ~> rb2 ~> q2.B
+
+    q1.C ~> c2 ~> q2.B
+    q2.C ~> c1 ~> q1.B

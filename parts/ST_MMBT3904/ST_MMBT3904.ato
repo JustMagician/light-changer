@@ -1,0 +1,21 @@
+#pragma experiment("TRAITS")
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component ST_MMBT3904_package:
+    """MMBT3904"""
+
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C84104", date="2025-09-27T17:14:18.265898+00:00", checksum="0de7935199a08003d45aeaac1d845fd7412c1be950e5392776a00e6d4c2fad98">
+
+    trait is_atomic_part<manufacturer="ST", partnumber="MMBT3904", footprint="SOT-23-3_L2.9-W1.3-P1.90-LS2.4-BR.kicad_mod", symbol="MMBT3904_C84104.kicad_sym", model="SOT-23-3P_L2.9-W1.3-H1.0-LS2.4-P0.95.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C84104", manufacturer="ST", partno="MMBT3904">
+    trait has_designator_prefix<prefix="Q">
+
+    # pins
+    signal B ~ pin 1
+    signal C ~ pin 3
+    signal E ~ pin 2
