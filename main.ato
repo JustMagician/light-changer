@@ -8,7 +8,7 @@ Dual LED flasher (astable multivibrator) using two NPN BJTs.
 Supply: 5V via a 2-pin header.
 """
 
-import ElectricPower, Electrical, Resistor, Capacitor
+import ElectricPower, Electrical, Resistor, Capacitor, TestPoint
 
 module App:
     # --- Power rail ---
@@ -19,14 +19,15 @@ module App:
     # --- I/O pads for power (use `pin` if you just want pads / bring-in) ---
     # If you prefer a real header footprint, run `ato create part` for a 1x02 header and import it.
     power_in = new Electrical
-    power_in ~ pin 1
+    power_point = new TestPoint
+    power_in ~ power_point.contact
     power_in.override_net_name = "VIN_PAD"
     # Map pads to rails:
     power_in ~ v5.hv
     # Add a second pad to GND:
     gnd_in = new Electrical
-    signal gnd = pin 0
-    gnd_in ~ gnd
+    ground_point = new TestPoint
+    gnd_in ~ ground_point.contact
     gnd_in ~ v5.lv
 
     # --- Active devices ---
@@ -81,20 +82,32 @@ module App:
     # v5.hv ~> rc1 ~> q1.C
     # v5.hv ~> rc2 ~> q2.C
 
-    # LED anodes to VCC, cathodes to collectors (LED on when collector is low)
-    v5 ~> led1.power
-    v5 ~> led2.power
+    # LED1
+    v5.hv ~ led1.power.hv
+    led1.low ~ q1.C
+    led1.low ~ c1.unnamed[1]
 
-    led1.low ~> q1.C
-    led2.low ~> q2.C
+    # LED2
+    v5.hv ~ led2.power.hv
+    led2.low ~ q2.C
+    led2.low ~ c2.unnamed[1]
 
-    # Emitters to ground
+    # R1
+    v5.hv ~ rb1.unnamed[0]
+    rb1.unnamed[1] ~ q1.B
+    rb1.unnamed[1] ~ c1.unnamed[0]
+
+    # R2
+    v5.hv ~ rb2.unnamed[0]
+    rb2.unnamed[1] ~ q2.B
+    rb2.unnamed[1] ~ c2.unnamed[0]
+
+    # Capacitors
+    c1.unnamed[1] ~ q1.C
+    c1.unnamed[0] ~ q2.B
+    c2.unnamed[1] ~ q2.C
+    c2.unnamed[0] ~ q1.B
+
+    # Transistors
     q1.E ~ v5.lv
     q2.E ~ v5.lv
-
-    # Cross-coupled RC: each collector drives the other's base through a capacitor; base to VCC via resistor
-    v5.hv ~> rb1 ~> q1.B
-    v5.hv ~> rb2 ~> q2.B
-
-    q1.C ~> c2 ~> q2.B
-    q2.C ~> c1 ~> q1.B
