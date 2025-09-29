@@ -8,7 +8,7 @@ Dual LED flasher (astable multivibrator) using two NPN BJTs.
 Supply: 5V via a 2-pin header.
 """
 
-import ElectricPower, Electrical, Resistor, Capacitor, TestPoint
+import ElectricPower, Electrical, Resistor, TestPoint, Capacitor
 
 module App:
     # --- Power rail ---
@@ -29,37 +29,24 @@ module App:
     ground_point = new TestPoint
     gnd_in ~ ground_point.contact
     gnd_in ~ v5.lv
+    gnd_in.override_net_name = "GND_PAD"
 
     # --- Active devices ---
     q1 = new ST_MMBT3904_package
-    q1.override_net_name = "Q1"
     q2 = new ST_MMBT3904_package
-    q2.override_net_name = "Q2"
 
     # --- LEDs ---
     led1 = new LEDIndicatorRed
-    led1.override_net_name = "LED1"
     led2 = new LEDIndicatorRed
-    led2.override_net_name = "LED2"
-
-    # --- Collector resistors (also act as LED series resistors) ---
-    # rc1 = new Resistor
-    # rc1.resistance = 330ohm +/- 5%
-    # rc1.package = "0603"
-
-    # rc2 = new Resistor
-    # rc2.resistance = 330ohm +/- 5%
-    # rc2.package = "0603"
 
     # --- Base resistors ---
-    rb1 = new Resistor
-    rb1.resistance = 100kohm +/- 5%
-    rb1.package = "0603"
-    rb1.override_net_name = "R1"
+    r1 = new Resistor
+    r1.resistance = 100kohm +/- 5%
+    r1.package = "0603"
 
-    rb2 = new Resistor
-    rb2.resistance = 100kohm +/- 5%
-    rb2.package = "0603"
+    r2 = new Resistor
+    r2.resistance = 100kohm +/- 5%
+    r2.package = "0603"
 
     # --- Timing capacitors ---
     c1 = new Capacitor
@@ -72,8 +59,8 @@ module App:
 
     # --- Assert timing math for the period ---
     # freq = 1 / R * C
-    assert rb1.resistance * c1.capacitance within 0.8sec to 1.2sec
-    assert rb2.resistance * c2.capacitance within 0.8sec to 1.2sec
+    assert r1.resistance * c1.capacitance within 0.8sec to 1.2sec
+    assert r2.resistance * c2.capacitance within 0.8sec to 1.2sec
 
 
     # --- Wiring (classic astable topology) ---
@@ -85,28 +72,32 @@ module App:
     # LED1
     v5.hv ~ led1.power.hv
     led1.low ~ q1.C
-    led1.low ~ c1.unnamed[1]
+    led1.low ~ c1.unnamed[0]
+    led1.low.override_net_name = "led1.low"
 
     # LED2
     v5.hv ~ led2.power.hv
     led2.low ~ q2.C
-    led2.low ~ c2.unnamed[1]
+    led2.low ~ c2.unnamed[0]
+    led2.low.override_net_name = "led2.low"
 
     # R1
-    v5.hv ~ rb1.unnamed[0]
-    rb1.unnamed[1] ~ q1.B
-    rb1.unnamed[1] ~ c1.unnamed[0]
+    v5.hv ~ r1.unnamed[0]
+    r1.unnamed[1] ~ q2.B
+    r1.unnamed[1] ~ c1.unnamed[1]
+    r1.unnamed[1].override_net_name = "r1.unnamed[1]"
 
     # R2
-    v5.hv ~ rb2.unnamed[0]
-    rb2.unnamed[1] ~ q2.B
-    rb2.unnamed[1] ~ c2.unnamed[0]
+    v5.hv ~ r2.unnamed[0]
+    r2.unnamed[1] ~ q1.B
+    r2.unnamed[1] ~ c2.unnamed[1]
+    r2.unnamed[1].override_net_name = "r2.unnamed[1]"
 
     # Capacitors
-    c1.unnamed[1] ~ q1.C
-    c1.unnamed[0] ~ q2.B
-    c2.unnamed[1] ~ q2.C
-    c2.unnamed[0] ~ q1.B
+    c1.unnamed[0] ~ q1.C
+    c1.unnamed[1] ~ q2.B
+    c2.unnamed[0] ~ q2.C
+    c2.unnamed[1] ~ q1.B
 
     # Transistors
     q1.E ~ v5.lv

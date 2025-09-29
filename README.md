@@ -3,3 +3,5 @@
 A brand new atopile project!
 
 Created by Pepper Powderly <pepper@atopile.io>
+
+![light_changer](./image.png)
