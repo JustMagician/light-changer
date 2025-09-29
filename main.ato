@@ -1,6 +1,20 @@
-from "parts/ST_MMBT3904/ST_MMBT3904.ato" import ST_MMBT3904_package
 
+
+
+
+
+
+
+
+
+
+
+
+
+from "parts/ST_MMBT3904/ST_MMBT3904.ato" import ST_MMBT3904_package
+from "atopile/xt-connectors/xt-connectors.ato" import XT30_Male_Right_Angle
 from "atopile/indicator-leds/indicator-leds.ato" import LEDIndicatorRed
+from "parts\Honor_Elec_RVT1V101M0607\Honor_Elec_RVT1V101M0607.ato" import Honor_Elec_RVT1V101M0607_package 
 
 
 """
@@ -10,26 +24,45 @@ Supply: 5V via a 2-pin header.
 
 import ElectricPower, Electrical, Resistor, TestPoint, Capacitor
 
+module captest: 
+    package = new Honor_Elec_RVT1V101M0607_package
+    anode = new Electrical
+    cathode = new Electrical
+    anode ~ package.1
+    cathode ~ package.2 
+
+
+module restest:
+    package = new Resistor
+    anode = new Electrical
+    
+    cathode = new Electrical
+    anode ~ package.unnamed[0]
+    cathode ~ package.unnamed[1]
+
 module App:
     # --- Power rail ---
     v5 = new ElectricPower
     # v5.voltage = 5V
     assert v5.voltage is 5V +/- 10%
 
+    right_angle_male = new XT30_Male_Right_Angle
+    
+
+
     # --- I/O pads for power (use `pin` if you just want pads / bring-in) ---
     # If you prefer a real header footprint, run `ato create part` for a 1x02 header and import it.
     power_in = new Electrical
-    power_point = new TestPoint
-    power_in ~ power_point.contact
     power_in.override_net_name = "VIN_PAD"
     # Map pads to rails:
     power_in ~ v5.hv
     # Add a second pad to GND:
     gnd_in = new Electrical
-    ground_point = new TestPoint
-    gnd_in ~ ground_point.contact
     gnd_in ~ v5.lv
     gnd_in.override_net_name = "GND_PAD"
+
+    right_angle_male.power.vcc ~ power_in
+    right_angle_male.power.gnd ~ gnd_in
 
     # --- Active devices ---
     q1 = new ST_MMBT3904_package
@@ -40,27 +73,17 @@ module App:
     led2 = new LEDIndicatorRed
 
     # --- Base resistors ---
-    r1 = new Resistor
-    r1.resistance = 100kohm +/- 5%
-    r1.package = "0603"
+    r1 = new restest
+    r1.package.resistance = 100kohm +/- 5%
+    r1.package.package = "0603"
 
-    r2 = new Resistor
-    r2.resistance = 100kohm +/- 5%
-    r2.package = "0603"
+    r2 = new restest
+    r2.packageresistance = 100kohm +/- 5%
+    r2.package.package = "0603"
 
     # --- Timing capacitors ---
-    c1 = new Capacitor
-    c1.capacitance = 10uF +/- 10%
-    c1.package = "0603"   # you can choose 0805 if 10uF 0603 is hard to source
-
-    c2 = new Capacitor
-    c2.capacitance = 10uF +/- 10%
-    c2.package = "0603"
-
-    # --- Assert timing math for the period ---
-    # freq = 1 / R * C
-    assert r1.resistance * c1.capacitance within 0.8sec to 1.2sec
-    assert r2.resistance * c2.capacitance within 0.8sec to 1.2sec
+    c1 = new captest
+    c2 = new captest
 
 
     # --- Wiring (classic astable topology) ---
@@ -72,32 +95,32 @@ module App:
     # LED1
     v5.hv ~ led1.power.hv
     led1.low ~ q1.C
-    led1.low ~ c1.unnamed[0]
+    led1.low ~ c1.anode
     led1.low.override_net_name = "led1.low"
 
     # LED2
     v5.hv ~ led2.power.hv
     led2.low ~ q2.C
-    led2.low ~ c2.unnamed[0]
+    led2.low ~ c2.anode
     led2.low.override_net_name = "led2.low"
 
     # R1
-    v5.hv ~ r1.unnamed[0]
-    r1.unnamed[1] ~ q2.B
-    r1.unnamed[1] ~ c1.unnamed[1]
-    r1.unnamed[1].override_net_name = "r1.unnamed[1]"
+    v5.hv ~ r1.anode
+    r1.cathode ~ q2.B
+    r1.cathode ~ c1.cathode
+    r1.cathode.override_net_name = "r1.cathode"
 
     # R2
-    v5.hv ~ r2.unnamed[0]
-    r2.unnamed[1] ~ q1.B
-    r2.unnamed[1] ~ c2.unnamed[1]
-    r2.unnamed[1].override_net_name = "r2.unnamed[1]"
+    v5.hv ~ r2.anode
+    r2.cathode ~ q1.B
+    r2.cathode ~ c2.cathode
+    r2.cathode.override_net_name = "r2.cathode"
 
     # Capacitors
-    c1.unnamed[0] ~ q1.C
-    c1.unnamed[1] ~ q2.B
-    c2.unnamed[0] ~ q2.C
-    c2.unnamed[1] ~ q1.B
+    c1.anode ~ q1.C
+    c1.cathode ~ q2.B
+    c2.anode ~ q2.C
+    c2.cathode ~ q1.B
 
     # Transistors
     q1.E ~ v5.lv
