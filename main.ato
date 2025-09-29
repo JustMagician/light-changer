@@ -1,5 +1,3 @@
-#pragma experiment("BRIDGE_CONNECT")
-
 from "parts/ST_MMBT3904/ST_MMBT3904.ato" import ST_MMBT3904_package
 
 from "atopile/indicator-leds/indicator-leds.ato" import LEDIndicatorRed
@@ -24,11 +22,12 @@ module App:
     power_in ~ pin 1
     power_in.override_net_name = "VIN_PAD"
     # Map pads to rails:
-    power_in ~> v5.hv
+    power_in ~ v5.hv
     # Add a second pad to GND:
     gnd_in = new Electrical
-    gnd_in ~ pin 0
-    gnd_in ~> v5.lv
+    signal gnd = pin 0
+    gnd_in ~ gnd
+    gnd_in ~ v5.lv
 
     # --- Active devices ---
     q1 = new ST_MMBT3904_package
@@ -85,6 +84,9 @@ module App:
     # LED anodes to VCC, cathodes to collectors (LED on when collector is low)
     v5 ~> led1.power
     v5 ~> led2.power
+
+    led1.low ~> q1.C
+    led2.low ~> q2.C
 
     # Emitters to ground
     q1.E ~ v5.lv
